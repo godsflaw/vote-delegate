@@ -1,5 +1,5 @@
 // VoteDelegate - delegate your vote
-pragma solidity 0.5.11;
+pragma solidity 0.6.12;
 
 import "ds-math/math.sol";
 import "ds-token/token.sol";
@@ -35,12 +35,6 @@ contract VoteDelegate is DSMath {
     }
 
     //TODO(godsflaw): test me
-    modifier delegator_auth() {
-        require(delegators[msg.sender] > 0, "Sender must be a delegator");
-        _;
-    }
-
-    //TODO(godsflaw): test me
     modifier factory_auth() {
         require(msg.sender == factory, "Sender must be VoteDelegateFactory");
         _;
@@ -56,11 +50,13 @@ contract VoteDelegate is DSMath {
         delegators[msg.sender] = add(delegators[msg.sender], wad);
         gov.pull(msg.sender, wad);
         chief.lock(wad);
+        iou.push(msg.sender, wad);
     }
 
     //TODO(godsflaw): test me
-    function free(uint256 wad) public delegator_auth {
+    function free(uint256 wad) public {
         delegators[msg.sender] = sub(delegators[msg.sender], wad);
+        iou.pull(msg.sender, wad);
         chief.free(wad);
         gov.push(msg.sender, wad);
     }

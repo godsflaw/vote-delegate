@@ -1,4 +1,4 @@
-pragma solidity 0.5.11;
+pragma solidity 0.6.12;
 
 import "ds-test/test.sol";
 import "./VoteDelegateFactory.sol";

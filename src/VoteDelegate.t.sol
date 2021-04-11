@@ -2,17 +2,16 @@ pragma solidity 0.6.12;
 
 import "ds-test/test.sol";
 import "ds-token/token.sol";
-import "ds-chief/chief.sol";
 
 import "./VoteDelegate.sol";
 
 contract Voter {
-    DSChief chief;
+    ChiefLike chief;
     DSToken gov;
     DSToken iou;
     VoteDelegate public proxy;
 
-    constructor(DSChief chief_, DSToken gov_, DSToken iou_) public {
+    constructor(ChiefLike chief_, DSToken gov_, DSToken iou_) public {
         chief = chief_;
         gov = gov_;
         iou = iou_;
@@ -72,7 +71,7 @@ contract VoteDelegateTest is DSTest {
     VoteDelegate proxy;
     DSToken gov;
     DSToken iou;
-    DSChief chief;
+    ChiefLike chief;
 
     Voter delegate;
     Voter delegator1;

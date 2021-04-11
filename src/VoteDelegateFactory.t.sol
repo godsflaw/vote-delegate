@@ -1,6 +1,7 @@
 pragma solidity 0.6.12;
 
 import "ds-test/test.sol";
+
 import "./VoteDelegateFactory.sol";
 
 contract VoteUser {

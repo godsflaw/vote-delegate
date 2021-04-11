@@ -1,26 +1,46 @@
 // VoteDelegate - delegate your vote
 pragma solidity 0.6.12;
 
-import "ds-math/math.sol";
-import "ds-token/token.sol";
-import "ds-chief/chief.sol";
+interface TokenLike {
+    function balanceOf(address) external view returns (uint256);
+    function approve(address, uint256) external;
+    function pull(address, uint256) external;
+    function push(address, uint256) external;
+}
 
-contract VoteDelegate is DSMath {
+interface ChiefLike {
+    function GOV() external view returns (TokenLike);
+    function IOU() external view returns (TokenLike);
+    function deposits(address) external view returns (uint256);
+    function lock(uint256) external;
+    function free(uint256) external;
+    function vote(address[] calldata) external returns (bytes32);
+    function vote(bytes32) external;
+}
+
+contract VoteDelegate {
     mapping(address => uint256) public delegators;
     address public immutable delegate;
-    DSToken public immutable gov;
-    DSToken public immutable iou;
-    DSChief public immutable chief;
+    TokenLike public immutable gov;
+    TokenLike public immutable iou;
+    ChiefLike public immutable chief;
 
     constructor(address _chief, address _delegate) public {
-        chief = DSChief(_chief);
+        chief = ChiefLike(_chief);
         delegate = _delegate;
 
-        gov = DSChief(_chief).GOV();
-        iou = DSChief(_chief).IOU();
+        gov = ChiefLike(_chief).GOV();
+        iou = ChiefLike(_chief).IOU();
 
         gov.approve(_chief, uint256(-1));
         iou.approve(_chief, uint256(-1));
+    }
+
+    function add(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        require((z = x + y) >= x, "ds-math-add-overflow");
+    }
+    function sub(uint256 x, uint256 y) internal pure returns (uint256 z) {
+        require((z = x - y) <= x, "ds-math-sub-underflow");
     }
 
     modifier delegate_auth() {

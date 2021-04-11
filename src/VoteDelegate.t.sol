@@ -220,4 +220,19 @@ contract VoteDelegateTest is DSTest {
 
         delegator2.doProxyFree(10_000 ether);
    }
+
+   function testFail_non_delegate_attempts_vote() public {
+        delegate.approveGov(address(proxy));
+        delegate.approveIou(address(proxy));
+        delegator1.approveGov(address(proxy));
+        delegator1.approveIou(address(proxy));
+
+        delegate.doProxyLock(100 ether);
+        delegator1.doProxyLock(10_000 ether);
+
+        // Delegator2 attempts to vote
+        address[] memory yays = new address[](1);
+        yays[0] = c1;
+        delegator2.doProxyVote(yays);
+   }
 }

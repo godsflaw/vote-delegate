@@ -1,9 +1,18 @@
 pragma solidity 0.6.12;
 
 import "ds-test/test.sol";
-import "ds-token/token.sol";
 
 import "./VoteDelegate.sol";
+
+interface Hevm {
+    function warp(uint256) external;
+    function store(address,bytes32,bytes32) external;
+    function load(address,bytes32) external view returns (bytes32);
+}
+
+interface AuthLike {
+    function wards(address) external returns (uint256);
+}
 
 contract Voter {
     ChiefLike chief;
@@ -63,26 +72,65 @@ contract Voter {
 }
 
 contract VoteDelegateTest is DSTest {
+    Hevm hevm;
+
     uint256 constant electionSize = 3;
     address constant c1 = address(0x1);
     address constant c2 = address(0x2);
     bytes byts;
 
     VoteDelegate proxy;
-    DSToken gov;
-    DSToken iou;
+    TokenLike gov;
+    TokenLike iou;
     ChiefLike chief;
 
     Voter delegate;
     Voter delegator1;
     Voter delegator2;
 
-    function setUp() public {
-        gov = new DSToken("GOV");
+    function giveAuthAccess (address _base, address target) internal {
+        AuthLike base = AuthLike(_base);
 
-        DSChiefFab fab = new DSChiefFab();
-        chief = fab.newChief(gov, electionSize);
+        // Edge case - ward is already set
+        if (base.wards(target) == 1) return;
+
+        for (int i = 0; i < 100; i++) {
+            // Scan the storage for the ward storage slot
+            bytes32 prevValue = hevm.load(
+                address(base),
+                keccak256(abi.encode(target, uint256(i)))
+            );
+            hevm.store(
+                address(base),
+                keccak256(abi.encode(target, uint256(i))),
+                bytes32(uint256(1))
+            );
+            if (base.wards(target) == 1) {
+                // Found it
+                return;
+            } else {
+                // Keep going after restoring the original value
+                hevm.store(
+                    address(base),
+                    keccak256(abi.encode(target, uint256(i))),
+                    prevValue
+                );
+            }
+        }
+
+        // We have failed if we reach here
+        assertTrue(false);
+    }
+
+    function setUp() public {
+        hevm = Hevm(HEVM_ADDRESS);
+
+        chief = ChiefLike(0x0a3f6849f78076aefaDf113F5BED87720274dDC0);
+        gov = chief.GOV();
         iou = chief.IOU();
+
+        // Give us admin access to mint MKR
+        giveAuthAccess(gov, address(this));
 
         delegate = new Voter(chief, gov, iou);
         delegator1 = new Voter(chief, gov, iou);

@@ -18,49 +18,49 @@ contract Voter {
         iou = iou_;
     }
 
-//    function setProxy(VoteDelegate proxy_) public {
-//        proxy = proxy_;
-//    }
-//
-//    function doChiefLock(uint amt) public {
-//        chief.lock(amt);
-//    }
-//
-//    function doChiefFree(uint amt) public {
-//        chief.free(amt);
-//    }
-//
-//    function doTransfer(address guy, uint amt) public {
-//        gov.transfer(guy, amt);
-//    }
-//
-//    function approveGov(address guy) public {
-//        gov.approve(guy);
-//    }
-//
-//    function approveIou(address guy) public {
-//        iou.approve(guy);
-//    }
-//
-//    function doProxyLock(uint amt) public {
-//        proxy.lock(amt);
-//    }
-//
-//    function doProxyFree(uint amt) public {
-//        proxy.free(amt);
-//    }
-//
-//    function doProxyFreeAll() public {
-//        proxy.freeAll();
-//    }
-//
-//    function doProxyVote(address[] memory yays) public returns (bytes32 slate) {
-//        return proxy.vote(yays);
-//    }
-//
-//    function doProxyVote(bytes32 slate) public {
-//        proxy.vote(slate);
-//    }
+    function setProxy(VoteDelegate proxy_) public {
+        proxy = proxy_;
+    }
+
+    function doChiefLock(uint amt) public {
+        chief.lock(amt);
+    }
+
+    function doChiefFree(uint amt) public {
+        chief.free(amt);
+    }
+
+    function doTransfer(address guy, uint amt) public {
+        gov.transfer(guy, amt);
+    }
+
+    function approveGov(address guy) public {
+        gov.approve(guy);
+    }
+
+    function approveIou(address guy) public {
+        iou.approve(guy);
+    }
+
+    function doProxyLock(uint amt) public {
+        proxy.lock(amt);
+    }
+
+    function doProxyFree(uint amt) public {
+        proxy.free(amt);
+    }
+
+    function doProxyFreeAll() public {
+        proxy.free(proxy.delegators(address(this)));
+    }
+
+    function doProxyVote(address[] memory yays) public returns (bytes32 slate) {
+        return proxy.vote(yays);
+    }
+
+    function doProxyVote(bytes32 slate) public {
+        proxy.vote(slate);
+    }
 }
 
 contract VoteDelegateTest is DSTest {
@@ -74,9 +74,9 @@ contract VoteDelegateTest is DSTest {
     DSToken iou;
     DSChief chief;
 
-    Voter cold;
-    Voter hot;
-    Voter random;
+    Voter delegate;
+    Voter delegator1;
+    Voter delegator2;
 
     function setUp() public {
         gov = new DSToken("GOV");
@@ -85,124 +85,109 @@ contract VoteDelegateTest is DSTest {
         chief = fab.newChief(gov, electionSize);
         iou = chief.IOU();
 
-        cold = new Voter(chief, gov, iou);
-        hot = new Voter(chief, gov, iou);
-        random = new Voter(chief, gov, iou);
-        gov.mint(address(cold), 100 ether);
+        delegate = new Voter(chief, gov, iou);
+        delegator1 = new Voter(chief, gov, iou);
+        delegator2 = new Voter(chief, gov, iou);
+        gov.mint(address(delegate), 100 ether);
+        gov.mint(address(delegator1), 10_000 ether);
+        gov.mint(address(delegator2), 20_000 ether);
 
-        proxy = new VoteDelegate(chief, address(cold), address(hot));
+        proxy = new VoteDelegate(address(chief), address(delegate));
 
-        // random.setProxy(proxy);
-        // cold.setProxy(proxy);
-        // hot.setProxy(proxy);
+        delegate.setProxy(proxy);
+        delegator1.setProxy(proxy);
+        delegator2.setProxy(proxy);
     }
 
-    // sainity test -> cold can lock and free gov tokens with chief directly
-//    function test_chief_lock_free() public {
-//        cold.approveGov(address(chief));
-//        cold.approveIou(address(chief));
-//
-//        cold.doChiefLock(100 ether);
-//        assertEq(gov.balanceOf(address(cold)), 0);
-//        assertEq(gov.balanceOf(address(chief)), 100 ether);
-//
-//        cold.doChiefFree(100 ether);
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//    }
-//
-//    function test_cold_lock_free() public {
-//        cold.approveGov(address(proxy));
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//
-//        cold.doProxyLock(100 ether);
-//        assertEq(gov.balanceOf(address(cold)), 0 ether);
-//        assertEq(gov.balanceOf(address(chief)), 100 ether);
-//
-//        cold.doProxyFree(100 ether);
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//    }
-//
-//    function test_hot_cold_voting() public {
-//        cold.approveGov(address(proxy));
-//        cold.doProxyLock(100 ether);
-//
-//        address[] memory yays = new address[](1);
-//        yays[0] = c1;
-//        cold.doProxyVote(yays);
-//        assertEq(chief.approvals(c1), 100 ether);
-//        assertEq(chief.approvals(c2), 0 ether);
-//
-//        address[] memory _yays = new address[](1);
-//        _yays[0] = c2;
-//        hot.doProxyVote(_yays);
-//        assertEq(chief.approvals(c1), 0 ether);
-//        assertEq(chief.approvals(c2), 100 ether);
-//    }
-//
-//    function test_hot_free() public {
-//        cold.approveGov(address(proxy));
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//
-//        cold.doProxyLock(100 ether);
-//        assertEq(gov.balanceOf(address(cold)), 0 ether);
-//        assertEq(gov.balanceOf(address(chief)), 100 ether);
-//
-//        hot.doProxyFree(100 ether);
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//    }
-//
-//    function test_lock_free() public {
-//        cold.approveGov(address(proxy));
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//
-//        cold.doProxyLock(100 ether);
-//        assertEq(gov.balanceOf(address(cold)), 0 ether);
-//        assertEq(gov.balanceOf(address(chief)), 100 ether);
-//
-//        hot.doProxyFree(100 ether);
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//    }
-//
-//    function test_free_all() public {
-//        cold.approveGov(address(proxy));
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//
-//        cold.doProxyLock(50 ether);
-//        cold.doTransfer(address(proxy), 25 ether);
-//        assertEq(gov.balanceOf(address(cold)), 25 ether);
-//        assertEq(gov.balanceOf(address(proxy)), 25 ether);
-//        assertEq(gov.balanceOf(address(chief)), 50 ether);
-//
-//        cold.doProxyFreeAll();
-//        assertEq(gov.balanceOf(address(cold)), 100 ether);
-//        assertEq(gov.balanceOf(address(proxy)), 0 ether);
-//        assertEq(gov.balanceOf(address(chief)), 0 ether);
-//    }
-//
-//    function testFail_no_proxy_approval() public {
-//        cold.doProxyLock(100 ether);
-//    }
-//
-//    function testFail_random_free() public {
-//        cold.approveGov(address(proxy));
-//        cold.doProxyLock(100 ether);
-//        random.doProxyFree(100 ether);
-//    }
-//
-//    function testFail_random_vote() public {
-//        cold.approveGov(address(proxy));
-//        cold.doProxyLock(100 ether);
-//
-//        address[] memory yays = new address[](1);
-//        yays[0] = c1;
-//        random.doProxyVote(yays);
-//    }
+   function test_proxy_lock_free() public {
+        delegate.approveGov(address(proxy));
+        delegate.approveIou(address(proxy));
+
+        assertEq(gov.balanceOf(address(delegate)), 100 ether);
+        assertEq(iou.balanceOf(address(delegate)), 0);
+
+        delegate.doProxyLock(100 ether);
+        assertEq(gov.balanceOf(address(delegate)), 0);
+        assertEq(gov.balanceOf(address(chief)), 100 ether);
+        assertEq(iou.balanceOf(address(delegate)), 100 ether);
+        assertEq(proxy.delegators(address(delegate)), 100 ether);
+
+        delegate.doProxyFree(100 ether);
+        assertEq(gov.balanceOf(address(delegate)), 100 ether);
+        assertEq(gov.balanceOf(address(chief)), 0 ether);
+        assertEq(iou.balanceOf(address(delegate)), 0);
+        assertEq(proxy.delegators(address(delegate)), 0);
+   }
+
+   function test_delegator_lock_free() public {
+        delegator1.approveGov(address(proxy));
+        delegator1.approveIou(address(proxy));
+
+        delegator1.doProxyLock(10_000 ether);
+        assertEq(gov.balanceOf(address(delegator1)), 0);
+        assertEq(gov.balanceOf(address(chief)), 10_000 ether);
+        assertEq(iou.balanceOf(address(delegator1)), 10_000 ether);
+        assertEq(proxy.delegators(address(delegator1)), 10_000 ether);
+
+        delegator1.doProxyFree(10_000 ether);
+        assertEq(gov.balanceOf(address(delegator1)), 10_000 ether);
+        assertEq(gov.balanceOf(address(chief)), 0 ether);
+        assertEq(iou.balanceOf(address(delegator1)), 0);
+        assertEq(proxy.delegators(address(delegator1)), 0);
+   }
+
+   function test_delegate_voting() public {
+        delegate.approveGov(address(proxy));
+        delegate.approveIou(address(proxy));
+        delegator1.approveGov(address(proxy));
+        delegator1.approveIou(address(proxy));
+
+        delegate.doProxyLock(100 ether);
+        delegator1.doProxyLock(10_000 ether);
+
+        assertEq(gov.balanceOf(address(chief)), 10_100 ether);
+
+        address[] memory yays = new address[](1);
+        yays[0] = c1;
+        cold.doProxyVote(yays);
+        assertEq(chief.approvals(c1), 10_100 ether);
+        assertEq(chief.approvals(c2), 0 ether);
+
+        address[] memory _yays = new address[](1);
+        _yays[0] = c2;
+        hot.doProxyVote(_yays);
+        assertEq(chief.approvals(c1), 0 ether);
+        assertEq(chief.approvals(c2), 10_100 ether);
+   }
+
+   function testFail_delegate_attempts_steal() public {
+        delegate.approveGov(address(proxy));
+        delegate.approveIou(address(proxy));
+        delegator1.approveGov(address(proxy));
+        delegator1.approveIou(address(proxy));
+
+        delegate.doProxyLock(100 ether);
+        delegator1.doProxyLock(10_000 ether);
+
+        // Attempting to steal more MKR than you put in
+        delegate.doProxyFree(101 ether);
+   }
+
+   function test_attempt_steal_with_ious() public {
+        delegator1.approveGov(address(proxy));
+        delegator1.approveIou(address(proxy));
+        delegator2.approveGov(address(chief));
+        delegator2.approveIou(address(proxy));
+
+        delegator1.doProxyLock(10_000 ether);
+
+        // You have enough IOU tokens, but you are still not marked as a delegate
+        delegator2.doChiefLock(20_000 ether);
+        assertEq(gov.balanceOf(address(proxy)), 10_000 ether);
+        assertEq(iou.balanceOf(address(delegator1)), 10_000 ether);
+        assertEq(gov.balanceOf(address(delegator2)), 20_000 ether);
+        assertEq(iou.balanceOf(address(delegator2)), 20_000 ether);
+
+        delegator2.doProxyFree(10_000 ether);
+   }
 }

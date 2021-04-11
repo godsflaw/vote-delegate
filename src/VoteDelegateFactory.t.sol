@@ -4,6 +4,12 @@ import "ds-test/test.sol";
 
 import "./VoteDelegateFactory.sol";
 
+interface Hevm {
+    function warp(uint256) external;
+    function store(address,bytes32,bytes32) external;
+    function load(address,bytes32) external view returns (bytes32);
+}
+
 contract VoteUser {
     VoteDelegateFactory voteDelegateFactory;
 
@@ -22,22 +28,26 @@ contract VoteUser {
 
 
 contract VoteDelegateFactoryTest is DSTest {
+    Hevm hevm;
+
     uint256 constant electionSize = 3;
 
     VoteDelegateFactory voteDelegateFactory;
-    DSToken gov;
-    DSToken iou;
-    DSChief chief;
+    TokenLike gov;
+    TokenLike iou;
+    ChiefLike chief;
 
     VoteUser delegate;
     VoteUser delegator;
 
     function setUp() public {
-        gov = new DSToken("GOV");
+        hevm = Hevm(HEVM_ADDRESS);
 
-        DSChiefFab fab = new DSChiefFab();
-        chief = fab.newChief(gov, electionSize);
-        voteDelegateFactory = new VoteDelegateFactory(chief);
+        chief = ChiefLike(0x0a3f6849f78076aefaDf113F5BED87720274dDC0);
+        gov = chief.GOV();
+        iou = chief.IOU();
+
+        voteDelegateFactory = new VoteDelegateFactory(address(chief));
         delegator = new VoteUser(voteDelegateFactory);
         delegate  = new VoteUser(voteDelegateFactory);
     }
@@ -47,9 +57,9 @@ contract VoteDelegateFactoryTest is DSTest {
     }
 
     function test_create() public {
-        assert(!voteDelegateFactory.isDelegate(address(delegate)));
+        assertTrue(!voteDelegateFactory.isDelegate(address(delegate)));
         VoteDelegate voteDelegate = delegate.doCreate();
-        assert(voteDelegateFactory.isDelegate(address(delegate)));
+        assertTrue(voteDelegateFactory.isDelegate(address(delegate)));
         assertEq(
             address(voteDelegateFactory.delegates(address(delegate))),
             address(voteDelegate)
@@ -68,11 +78,10 @@ contract VoteDelegateFactoryTest is DSTest {
     function test_destroy() public {
         VoteDelegate voteDelegate = delegate.doCreate();
         delegate.doDestroy();
-        assert(voteDelegate.abandoned());
-        assert(!voteDelegateFactory.isDelegate(address(delegate)));
+        assertTrue(!voteDelegateFactory.isDelegate(address(delegate)));
         // test that the delegate can now make another VoteDelegate
         voteDelegate = delegate.doCreate();
-        assert(voteDelegateFactory.isDelegate(address(delegate)));
+        assertTrue(voteDelegateFactory.isDelegate(address(delegate)));
         assertEq(
             address(voteDelegateFactory.delegates(address(delegate))),
             address(voteDelegate)

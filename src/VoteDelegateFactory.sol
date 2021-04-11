@@ -4,7 +4,7 @@ pragma solidity 0.6.12;
 import "./VoteDelegate.sol";
 
 contract VoteDelegateFactory {
-    DSChief public immutable chief;
+    ChiefLike public immutable chief;
     mapping(address => VoteDelegate) public delegates;
 
     event VoteDelegateCreated(
@@ -18,7 +18,7 @@ contract VoteDelegateFactory {
     );
 
     constructor(address chief_) public {
-        chief = DSChief(chief_);
+        chief = ChiefLike(chief_);
     }
 
     function isDelegate(address guy) public view returns (bool) {
@@ -28,7 +28,7 @@ contract VoteDelegateFactory {
     function create() public returns (VoteDelegate voteDelegate) {
         require(!isDelegate(msg.sender), "this address is already a delegate");
 
-        voteDelegate = new VoteDelegate(chief, msg.sender, address(this));
+        voteDelegate = new VoteDelegate(address(chief), msg.sender);
         delegates[msg.sender] = voteDelegate;
         emit VoteDelegateCreated(msg.sender, address(voteDelegate));
     }
@@ -36,7 +36,8 @@ contract VoteDelegateFactory {
     function destroy() public {
         require(isDelegate(msg.sender), "No VoteDelegate found");
 
+        address voteDelegate = address(delegates[msg.sender]);
         delete delegates[msg.sender];
-        emit VoteDelegateDestroyed(msg.sender, address(voteDelegate));
+        emit VoteDelegateDestroyed(msg.sender, voteDelegate);
     }
 }

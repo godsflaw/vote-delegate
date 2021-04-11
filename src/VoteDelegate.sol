@@ -6,11 +6,14 @@ interface TokenLike {
     function approve(address, uint256) external;
     function pull(address, uint256) external;
     function push(address, uint256) external;
+    function transfer(address, uint256) external;
+    function mint(address, uint256) external;
 }
 
 interface ChiefLike {
     function GOV() external view returns (TokenLike);
     function IOU() external view returns (TokenLike);
+    function approvals(address) external view returns (uint256);
     function deposits(address) external view returns (uint256);
     function lock(uint256) external;
     function free(uint256) external;
@@ -32,8 +35,8 @@ contract VoteDelegate {
         gov = ChiefLike(_chief).GOV();
         iou = ChiefLike(_chief).IOU();
 
-        gov.approve(_chief, uint256(-1));
-        iou.approve(_chief, uint256(-1));
+        ChiefLike(_chief).GOV().approve(_chief, uint256(-1));
+        ChiefLike(_chief).IOU().approve(_chief, uint256(-1));
     }
 
     function add(uint256 x, uint256 y) internal pure returns (uint256 z) {

@@ -51,25 +51,25 @@ contract VoteDelegate {
         _;
     }
 
-    function lock(uint256 wad) public {
+    function lock(uint256 wad) external {
         delegators[msg.sender] = add(delegators[msg.sender], wad);
         gov.pull(msg.sender, wad);
         chief.lock(wad);
         iou.push(msg.sender, wad);
     }
 
-    function free(uint256 wad) public {
+    function free(uint256 wad) external {
         delegators[msg.sender] = sub(delegators[msg.sender], wad);
         iou.pull(msg.sender, wad);
         chief.free(wad);
         gov.push(msg.sender, wad);
     }
 
-    function vote(address[] memory yays) public delegate_auth returns (bytes32) {
+    function vote(address[] memory yays) external delegate_auth returns (bytes32) {
         return chief.vote(yays);
     }
 
-    function vote(bytes32 slate) public delegate_auth {
+    function vote(bytes32 slate) external delegate_auth {
         chief.vote(slate);
     }
 }
